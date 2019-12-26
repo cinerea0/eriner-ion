@@ -1,0 +1,82 @@
+# vim:et sts=2 sw=2 ft=ion
+
+fn prompt_eriner_main
+  let prompt = ''
+  let prompt ++= "$(eriner_status)"
+  let prompt ++= "$(eriner_pwd)"
+  let prompt ++= "$(eriner_git)"
+  let prompt ++= "${c::default,defaultbg} ${c::reset}"
+  echo -n $prompt
+end
+
+fn eriner_status
+  let segment = "${c::blackbg} ${c::reset}"
+  if test $? -eq 1
+    let segment ++= "${c::red,blackbg}✘${c::reset}"
+  end
+  if test $EUID -eq 0
+    let segment ++= "${c::yellow,blackbg}⚡${c::reset}"
+  end
+  if test $(jobs -l ^| wc -l) -ne 0
+    let segment ++= "${c::cyan,blackbg}⚙${c::reset}"
+  end
+  #if exists -s ${env::RANGER_LEVEL}
+  #  let segment ++= "${c::cyan,blackbg}r${c::reset}"
+  #end
+  #echo $segment
+  if test $len("$segment") -gt 10
+    let segment ++= "${c::blackbg} ${c::reset}"
+  end
+  let segment ++= "${c::default,blackbg}$USER\@$HOST ${c::reset}"
+  let segment ++= "${c::black,cyanbg}${c::reset}"
+  echo $segment
+end
+
+fn eriner_pwd
+  let work_dir = $regex_replace("$PWD" "$HOME" "~")
+  let separated_dirs = []
+  for segment in @split("$parent($work_dir)", '/')
+    let separated_dirs ++= $segment
+  end
+  let short_work_dir = ''
+  for segment in @separated_dirs
+    if test $segment = ','
+      let short_work_dir ++= ''
+    else if test $segment = '/'
+      let short_work_dir ++= ''
+    else if test $segment[0] = '.'
+      let short_work_dir ++= "$segment[0..2]"
+      let short_work_dir ++= '/'
+    else
+      let short_work_dir ++= "$segment[0]"
+      let short_work_dir ++= '/'
+    end
+  end
+  let short_work_dir ++= "$basename($work_dir)"
+  if test $short_work_dir = '//'
+    let short_work_dir = '/'
+  end
+  echo "${c::0x000,cyanbg} $short_work_dir ${c::reset}"
+end
+
+fn eriner_git
+  if test "$(git rev-parse --is-inside-work-tree)" != "true"
+    echo "${c::cyan,defaultbg}${c::reset}"
+  else
+    let segment = ''
+    if test -z "$(git diff --stat)"
+      let segment ++= "${c::cyan,greenbg}${c::reset}"
+      let segment ++= "${c::0x000,greenbg}  ${c::reset}"
+      let segment ++= "${c::0x000,greenbg}$(git rev-parse --abbrev-ref HEAD) ${c::reset}"
+      let segment ++= "${c::green,defaultbg}${c::reset}"
+      echo $segment
+    else
+      let segment ++= "${c::cyan,yellowbg}${c::reset}"
+      let segment ++= "${c::0x000,yellowbg}  ${c::reset}"
+      let segment ++= "${c::0x000,yellowbg}$(git rev-parse --abbrev-ref HEAD)${c::reset}"
+      let segment ++= "${c::0x000,yellowbg} ± ${c::reset}"
+      let segment ++= "${c::yellow,defaultbg}${c::reset}"
+      echo $segment
+    end
+  end
+end
